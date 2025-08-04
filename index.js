@@ -8,15 +8,30 @@ dotenv.config();
 
 const app = express();
 
-// Middlewares
-app.use(cors({
-  origin:  process.env.CLIENT_URL,
-  credentials: true, // allow credentials like tokens/cookies
-}));
+// ✅ Allow multiple frontend origins (localhost + Vercel frontend)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://linkedin-mini-frontend-d1bn.vercel.app',
+  'https://linkedin-mini-frontend.vercel.app' // optional fallback
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Routes
-const userRoutes = require('./routes/userRoutes'); // ✅ This should exist
+const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
 // Start Server
@@ -33,8 +48,9 @@ const startServer = async () => {
     await mongoose.connect(mongoUri);
     console.log('✅ MongoDB Connected');
 
-    app.listen(5000, () => {
-      console.log('🚀 Server running on http://localhost:5000');
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
